@@ -15,4 +15,10 @@ defmodule KV.RegistyTest do
     KV.Bucket.put(bucket, "milk", 1)
     assert KV.Bucket.get(bucket, "milk") == 1
   end
+
+  test "stop buckets", %{registry: registry} do
+    assert Process.alive?(registry) == true
+    KV.Registry.stop(registry)
+    assert Process.alive?(registry) == false
+  end
 end
