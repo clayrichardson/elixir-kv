@@ -2,8 +2,8 @@ defmodule KV.RegistyTest do
   use ExUnit.Case, async: true
 
   setup context do
-    {:ok, registry} = KV.Registry.start_link(context.test)
-    {:ok, registry: registry}
+    {:ok, _} = KV.Registry.start_link(context.test)
+    {:ok, registry: context.test}
   end
 
   test "shits buckets", %{registry: registry} do
@@ -16,16 +16,13 @@ defmodule KV.RegistyTest do
     assert KV.Bucket.get(bucket, "milk") == 1
   end
 
-  test "stop buckets", %{registry: registry} do
-    assert Process.alive?(registry) == true
-    KV.Registry.stop(registry)
-    assert Process.alive?(registry) == false
-  end
-
   test "removes buckets on exit", %{registry: registry} do
     KV.Registry.create(registry, "shopping")
     {:ok, bucket} = KV.Registry.lookup(registry, "shopping")
     Agent.stop(bucket)
+
+    # Do a call to ensure the registry processed the DOWN messages
+    _ = KV.Registry.create(registry, "bogus")
     assert KV.Registry.lookup(registry, "shopping") == :error
   end
 
@@ -33,13 +30,15 @@ defmodule KV.RegistyTest do
     KV.Registry.create(registry, "shopping")
     {:ok, bucket} = KV.Registry.lookup(registry, "shopping")
 
-    # Stop the bucket with non-normal reason
-    ref = Process.monitor(bucket)
+    # Kill the bucket and wait for the notification
     Process.exit(bucket, :shutdown)
 
     # Wait until the bucket is dead
+    ref = Process.monitor(bucket)
     assert_receive {:DOWN, ^ref, _, _, _}
 
+    # Do a call to ensure the registry processed the DOWN message
+    _ = KV.Registry.create(registry, "bogus")
     assert KV.Registry.lookup(registry, "shopping") == :error
   end
 end
