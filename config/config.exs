@@ -2,6 +2,15 @@
 # and its dependencies with the aid of the Mix.Config module.
 use Mix.Config
 
+if Mix.env == :dev do
+  config :mix_test_watch,
+  clear: true,
+  tasks: [
+    "test",
+    "credo --strict",
+  ]
+end
+
 # By default, the umbrella project as well as each child
 # application will require this configuration file, ensuring
 # they all use the same configuration. While one could
